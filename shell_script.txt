@@ -1,0 +1,8 @@
+Create Queue: iptables -I FORWARD -j NFQUEUE --queue-num 0
+Create Queue hứng gói đầu ra: iptables -I OUTPUT FORWARD -j NFQUEUE --queue-num 0
+Create Queue hứng gói đầu vào: iptables -I INPUT FORWARD -j NFQUEUE --queue-num 0
+Drop Queue: iptables --flush
+
+systax:
+service apache2 start
+ping -c 1 www.bing.com

